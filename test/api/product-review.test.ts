@@ -172,7 +172,7 @@ void describe('/rest/products/reviews', () => {
     assert.equal(res.status, 200)
   })
 
-  void it('PATCH multiple product review via injection modifies no reviews', async () => {
+  void it('PATCH multiple product review via injection is rejected', async () => {
     const { token } = await login(app, {
       email: 'bjoern.kimminich@gmail.com',
       password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
@@ -184,11 +184,28 @@ void describe('/rest/products/reviews', () => {
         id: { $ne: -1 },
         message: 'trololololololololololololololololololololololololololol'
       })
-    assert.equal(res.status, 200)
-    assert.equal(res.body.modified, 0)
+    assert.equal(res.status, 400)
 
     const reviews = await request(app)
       .get('/rest/products/1/reviews')
     assert.ok(!reviews.body.data.some((r: { message: string }) => r.message === 'trololololololololololololololololololololololololololol'))
+  })
+
+  void it('PATCH product review with a non-string id is rejected', async () => {
+    const { token } = await login(app, {
+      email: 'bjoern.kimminich@gmail.com',
+      password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
+    })
+    for (const id of [[reviewId], 1, null]) {
+      const res = await request(app)
+        .patch('/rest/products/reviews')
+        .set({ Authorization: `Bearer ${token}`, 'content-type': 'application/json' })
+        .send({ id, message: 'Non-string id' })
+      assert.equal(res.status, 400)
+    }
+
+    const reviews = await request(app)
+      .get('/rest/products/1/reviews')
+    assert.ok(!reviews.body.data.some((r: { message: string }) => r.message === 'Non-string id'))
   })
 })
